@@ -44,11 +44,7 @@ const irr::f32 DEG_IN_RAD = 180.0 / PI;
 const irr::f32 RAD_PER_S_IN_DEG_PER_MINUTE = 180.0/PI * 60 ;
 
 //general definitions
-<<<<<<< HEAD
-const std::string LONGNAME = "Aegir Styra 5.10.0-alpha.6";
-=======
-const std::string LONGNAME = "Bridge Command 5.10.0";
->>>>>>> Update-5.10.0
+const std::string LONGNAME = "Aegir Styra 5.10.0";
 const std::string VERSION = "5.10";
 const std::string LONGVERSION = "5.10.0";
 #endif
