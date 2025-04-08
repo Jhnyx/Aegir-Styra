@@ -457,6 +457,10 @@ void OwnShip::load(OwnShipData ownShipData, irr::core::vector3di numberOfContact
         else
         {
             device->getLogger()->log("cB not defined in boat.ini mass declared in boat.ini used");
+            irr::f32 estimatedMass = seawaterDensity * length * breadth * draught * 1;
+            device->getLogger()->log((irr::core::stringw("Mass: ") + irr::core::stringw(shipMass)).c_str());
+            device->getLogger()->log((irr::core::stringw("Mass with cB=1: ") + irr::core::stringw(estimatedMass)).c_str());
+            device->getLogger()->log((irr::core::stringw("Effective cB=") + irr::core::stringw(shipMass / estimatedMass)).c_str());
         }
         if (Izz <= 0)
         {
@@ -1743,7 +1747,7 @@ void OwnShip::update(irr::f32 deltaTime, irr::f32 scenarioTime, irr::f32 tideHei
         // std::cout << "Collision forces (Time/axial/lateral/turn)," << scenarioTime << "," << groundingAxialDrag << "," << groundingLateralDrag << "," << groundingTurnDrag << std::endl;
 
         // Add drag from wind and stream
-        irr::f32 windSpeed = model->getWindSpeed();
+        irr::f32 windSpeed = model->getWindSpeed() * KTS_TO_MPS;
         irr::f32 windDirection = model->getWindDirection();
         // Convert this into wind axial speed and wind lateral speed
         irr::f32 windFlowDirection = windDirection + 180; // Wind direction is where the wind is from. We want where it is flowing towards
