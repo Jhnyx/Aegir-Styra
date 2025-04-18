@@ -61,7 +61,7 @@
 
 class VRInterface {
 public:
-    VRInterface(irr::IrrlichtDevice* dev, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::u32 suGUI, irr::u32 shGUI);
+    VRInterface(irr::IrrlichtDevice* dev, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::gui::IGUIEnvironment* guiEnv, irr::u32 suGUI, irr::u32 shGUI);
     ~VRInterface();
     int load(SimulationModel* model);
     void unload();
@@ -183,6 +183,8 @@ private:
     bool previousSelectState[HAND_COUNT];
     irr::s32 raySelectScreenX;
     irr::s32 raySelectScreenY;
+    irr::gui::IGUIEnvironment* guienv;
+    bool collisionWasActiveLastFrame = false;
 };
 
 #endif

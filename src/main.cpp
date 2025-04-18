@@ -914,7 +914,7 @@ int main(int argc, char ** argv)
     }
 
     // Set up the VR interface
-    VRInterface vrInterface(device, device->getSceneManager(), device->getVideoDriver(), su, sh);
+    VRInterface vrInterface(device, device->getSceneManager(), device->getVideoDriver(), device->getGUIEnvironment(), su, sh);
 
     bool secondaryControlWheel = false;
     bool secondaryControlPortEngine = false;

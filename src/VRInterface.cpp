@@ -25,7 +25,14 @@
 #include <cstdarg>
 
 // Constructor
-VRInterface::VRInterface(irr::IrrlichtDevice* dev, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::u32 suGUI, irr::u32 shGUI) {
+VRInterface::VRInterface(irr::IrrlichtDevice* dev,
+	irr::scene::ISceneManager* smgr,
+	irr::video::IVideoDriver* driver,
+	irr::gui::IGUIEnvironment* guiEnv,
+	irr::u32 suGUI,
+	irr::u32 shGUI)
+	: dev(dev), smgr(smgr), driver(driver), guienv(guiEnv), suGUI(suGUI), shGUI(shGUI)
+{
 	this->dev = dev;
 	this->smgr = smgr;
     this->driver = driver;
@@ -1602,6 +1609,31 @@ int VRInterface::update() {
 			// Draw GUI, this should have been updated in guiMain.drawGUI() above
 			driver->setViewPort(irr::core::rect<irr::s32>(0, 0, 10, 10));//Set to a dummy value first to force the next call to make the change
 			driver->setViewPort(irr::core::rect<irr::s32>(0, 0, suGUI, shGUI));
+
+			bool collisionActiveInVR = model->checkOwnShipCollision();
+
+			if (collisionActiveInVR) {
+				irr::s32 screenCentreX = 0.5 * suGUI;
+				irr::s32 screenCentreY = 0.05 * shGUI;
+
+				irr::core::rect<irr::s32> boxRect(
+					screenCentreX - 0.25 * suGUI,
+					screenCentreY - 0.025 * shGUI,
+					screenCentreX + 0.25 * suGUI,
+					screenCentreY + 0.025 * shGUI
+				);
+
+				driver->draw2DRectangle(irr::video::SColor(255, 255, 255, 255), boxRect);
+
+				irr::gui::IGUIFont* font = guienv ? guienv->getSkin()->getFont() : nullptr;
+				if (font) {
+					font->draw(L"COLLIDED", boxRect, irr::video::SColor(255, 255, 0, 0), true, true);
+				}
+				else {
+					std::cout << " Font not available during VR HUD draw." << std::endl;
+				}
+			}
+
 			smgr->getGUIEnvironment()->drawAll();
 			//set back usual render target
 			driver->setRenderTarget(0, 0); // TODO: Maybe not needed here
