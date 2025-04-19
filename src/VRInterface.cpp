@@ -1,4 +1,4 @@
-/*   Bridge Command 5.0 Ship Simulator
+/*   Aegir Styra 5.0 Ship Simulator
      Copyright (C) 2023 James Packer
 
      This program is free software; you can redistribute it and/or modify
@@ -20,11 +20,19 @@
 
 #include "VRInterface.hpp"
 #include "Constants.hpp"
+#include "Camera.hpp"
 #include <iostream>
 #include <cstdarg>
 
 // Constructor
-VRInterface::VRInterface(irr::IrrlichtDevice* dev, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::u32 suGUI, irr::u32 shGUI) {
+VRInterface::VRInterface(irr::IrrlichtDevice* dev,
+	irr::scene::ISceneManager* smgr,
+	irr::video::IVideoDriver* driver,
+	irr::gui::IGUIEnvironment* guiEnv,
+	irr::u32 suGUI,
+	irr::u32 shGUI)
+	: dev(dev), smgr(smgr), driver(driver), guienv(guiEnv), suGUI(suGUI), shGUI(shGUI)
+{
 	this->dev = dev;
 	this->smgr = smgr;
     this->driver = driver;
@@ -369,7 +377,7 @@ int VRInterface::load(SimulationModel* model) {
 	instance_create_info.applicationInfo.applicationVersion = 1;
 	instance_create_info.applicationInfo.engineVersion = 0;
 	instance_create_info.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
-	strncpy(instance_create_info.applicationInfo.applicationName, "Bridge Command",
+	strncpy(instance_create_info.applicationInfo.applicationName, "Aegir Styra",
 		XR_MAX_APPLICATION_NAME_SIZE);
 	strncpy(instance_create_info.applicationInfo.engineName, "Irrlicht Custom", XR_MAX_ENGINE_NAME_SIZE);
 
@@ -609,6 +617,13 @@ int VRInterface::load(SimulationModel* model) {
 	xrStringToPath(instance, "/user/hand/right/input/menu/click",
 		&menu_click_path[HAND_RIGHT_INDEX]);
 
+	XrPath thumbstick_click_path;
+	xrStringToPath(instance, "/user/hand/right/input/thumbstick/click", 
+		&thumbstick_click_path);
+
+	XrPath grip_click_path;
+	xrStringToPath(instance, "/user/hand/right/input/grip/click", &grip_click_path);
+
 	/*
 	XrPath thumbstick_y_path[HAND_COUNT];
 	xrStringToPath(instance, "/user/hand/left/input/thumbstick/y",
@@ -710,6 +725,38 @@ int VRInterface::load(SimulationModel* model) {
 			return 1;
 	}
 
+	// Camera Switch action:
+	{
+		XrActionCreateInfo action_info;
+		action_info.type = XR_TYPE_ACTION_CREATE_INFO;
+		action_info.next = NULL;
+		action_info.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT; // Boolean for click event
+		action_info.countSubactionPaths = HAND_COUNT;
+		action_info.subactionPaths = hand_paths;
+		strcpy(action_info.actionName, "switchcamera");
+		strcpy(action_info.localizedActionName, "Switch Camera");
+
+		result = xrCreateAction(gameplay_actionset, &action_info, &switch_camera_action);
+		if (!xr_check(instance, result, "failed to create switch camera action"))
+			return 1;
+	}
+
+	// Horn action:
+	{
+		XrActionCreateInfo action_info;
+		action_info.type = XR_TYPE_ACTION_CREATE_INFO;
+		action_info.next = NULL;
+		action_info.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT; // Boolean input (pressed or not)
+		action_info.countSubactionPaths = HAND_COUNT;
+		action_info.subactionPaths = hand_paths;
+		strcpy(action_info.actionName, "horn");
+		strcpy(action_info.localizedActionName, "Horn");
+
+		result = xrCreateAction(gameplay_actionset, &action_info, &horn_action);
+		if (!xr_check(instance, result, "Failed to create horn action"))
+			return 1;
+	}
+
 	// Menu action:
 	{
 		XrActionCreateInfo action_info;
@@ -762,6 +809,8 @@ int VRInterface::load(SimulationModel* model) {
 			{menu_action, menu_click_path[HAND_RIGHT_INDEX]},
 			{haptic_action, haptic_path[HAND_LEFT_INDEX]},
 			{haptic_action, haptic_path[HAND_RIGHT_INDEX]},
+			{switch_camera_action, thumbstick_click_path},
+			{horn_action, grip_click_path},
 		};
 		
 		const XrInteractionProfileSuggestedBinding suggested_bindings = {
@@ -1060,6 +1109,53 @@ int VRInterface::update() {
 	actions_sync_info.activeActionSets = active_actionsets;
 	result = xrSyncActions(session, &actions_sync_info);
 	xr_check(instance, result, "failed to sync actions!");
+
+	// Camera View Switch for Both Hands
+	XrActionStateBoolean cameraSwitchState[HAND_COUNT];
+	XrActionStateGetInfo cameraGetInfo[HAND_COUNT];
+
+	for (int i = 0; i < HAND_COUNT; i++) {
+		cameraGetInfo[i].type = XR_TYPE_ACTION_STATE_GET_INFO;
+		cameraGetInfo[i].next = NULL;
+		cameraGetInfo[i].action = switch_camera_action;
+		cameraGetInfo[i].subactionPath = hand_paths[i]; // Check both hands
+
+		xrGetActionStateBoolean(session, &cameraGetInfo[i], &cameraSwitchState[i]);
+
+		// If the button is pressed on either hand, switch the camera
+		if (cameraSwitchState[i].currentState && cameraSwitchState[i].changedSinceLastSync) {
+			if (model) {
+				model->changeView();
+			}
+		}
+	}
+
+	// Horn Action Handling for Both Hands
+	XrActionStateBoolean hornState[HAND_COUNT];
+	XrActionStateGetInfo hornGetInfo[HAND_COUNT];
+
+	for (int i = 0; i < HAND_COUNT; i++) {
+		hornGetInfo[i].type = XR_TYPE_ACTION_STATE_GET_INFO;
+		hornGetInfo[i].next = NULL;
+		hornGetInfo[i].action = horn_action;
+		hornGetInfo[i].subactionPath = hand_paths[i]; // Check both left and right hands
+
+		xrGetActionStateBoolean(session, &hornGetInfo[i], &hornState[i]);
+
+		// If the button is pressed on either hand, start the horn
+		if (hornState[i].currentState && hornState[i].changedSinceLastSync) {
+			if (model) {
+				model->startHorn();
+			}
+		}
+
+		// If the button is released on either hand, stop the horn
+		if (!hornState[i].currentState && hornState[i].changedSinceLastSync) {
+			if (model) {
+				model->endHorn();
+			}
+		}
+	}
 
 	// query each value / location with a subaction path != XR_NULL_PATH
 	// resulting in individual values per hand/.
@@ -1513,6 +1609,31 @@ int VRInterface::update() {
 			// Draw GUI, this should have been updated in guiMain.drawGUI() above
 			driver->setViewPort(irr::core::rect<irr::s32>(0, 0, 10, 10));//Set to a dummy value first to force the next call to make the change
 			driver->setViewPort(irr::core::rect<irr::s32>(0, 0, suGUI, shGUI));
+
+			bool collisionActiveInVR = model->checkOwnShipCollision();
+
+			if (collisionActiveInVR) {
+				irr::s32 screenCentreX = 0.5 * suGUI;
+				irr::s32 screenCentreY = 0.05 * shGUI;
+
+				irr::core::rect<irr::s32> boxRect(
+					screenCentreX - 0.25 * suGUI,
+					screenCentreY - 0.025 * shGUI,
+					screenCentreX + 0.25 * suGUI,
+					screenCentreY + 0.025 * shGUI
+				);
+
+				driver->draw2DRectangle(irr::video::SColor(255, 255, 255, 255), boxRect);
+
+				irr::gui::IGUIFont* font = guienv ? guienv->getSkin()->getFont() : nullptr;
+				if (font) {
+					font->draw(L"COLLIDED", boxRect, irr::video::SColor(255, 255, 0, 0), true, true);
+				}
+				else {
+					std::cout << " Font not available during VR HUD draw." << std::endl;
+				}
+			}
+
 			smgr->getGUIEnvironment()->drawAll();
 			//set back usual render target
 			driver->setRenderTarget(0, 0); // TODO: Maybe not needed here

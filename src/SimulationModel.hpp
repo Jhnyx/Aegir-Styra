@@ -1,4 +1,4 @@
-/*   Bridge Command 5.0 Ship Simulator
+/*   Aegir Styra 5.0 Ship Simulator
      Copyright (C) 2014 James Packer
 
      This program is free software; you can redistribute it and/or modify
@@ -354,6 +354,9 @@ public:
     void updateCameraVRPos(irr::core::quaternion quat, irr::core::vector3df pos, irr::core::vector2df lensShift);
 
     void update();
+
+    //utility function to check for collision
+    bool checkOwnShipCollision();
   
 private:
     irr::IrrlichtDevice* device;
@@ -413,9 +416,6 @@ private:
     irr::f32 scenarioTime; //Simulation internal time, starting at zero at 0000h on start day of simulation
     uint64_t scenarioOffsetTime; //Simulation day's start time from unix epoch (1 Jan 1970)
     uint64_t absoluteTime; //Unix timestamp for current time, including start day. Calculated from scenarioTime and scenarioOffsetTime
-
-    //utility function to check for collision
-    bool checkOwnShipCollision();
 
     //Offset position handling
     irr::core::vector3d<int64_t> offsetPosition;

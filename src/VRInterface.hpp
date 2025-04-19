@@ -1,4 +1,4 @@
-/*   Bridge Command 5.0 Ship Simulator
+/*   Aegir Styra 5.0 Ship Simulator
      Copyright (C) 2023 James Packer
 
      This program is free software; you can redistribute it and/or modify
@@ -61,7 +61,7 @@
 
 class VRInterface {
 public:
-    VRInterface(irr::IrrlichtDevice* dev, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::u32 suGUI, irr::u32 shGUI);
+    VRInterface(irr::IrrlichtDevice* dev, irr::scene::ISceneManager* smgr, irr::video::IVideoDriver* driver, irr::gui::IGUIEnvironment* guiEnv, irr::u32 suGUI, irr::u32 shGUI);
     ~VRInterface();
     int load(SimulationModel* model);
     void unload();
@@ -115,6 +115,8 @@ private:
     XrAction select_action_float;
     XrAction menu_action;
     XrAction haptic_action;
+    XrAction switch_camera_action; // Added action for switching camera
+    XrAction horn_action; // VR button action for horn
     XrResult result;
 
     int menuPressedRepeats;
@@ -181,6 +183,8 @@ private:
     bool previousSelectState[HAND_COUNT];
     irr::s32 raySelectScreenX;
     irr::s32 raySelectScreenY;
+    irr::gui::IGUIEnvironment* guienv;
+    bool collisionWasActiveLastFrame = false;
 };
 
 #endif
