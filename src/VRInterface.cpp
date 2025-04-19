@@ -1627,7 +1627,7 @@ int VRInterface::update() {
 
 				irr::gui::IGUIFont* font = guienv ? guienv->getSkin()->getFont() : nullptr;
 				if (font) {
-					font->draw(L"COLLIDED", boxRect, irr::video::SColor(255, 255, 0, 0), true, true);
+					font->draw(L"YOU ARE IN COLLISION!", boxRect, irr::video::SColor(255, 255, 0, 0), true, true);
 				}
 				else {
 					std::cout << " Font not available during VR HUD draw." << std::endl;
